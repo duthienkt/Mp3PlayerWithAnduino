@@ -77,12 +77,17 @@ void setupVolume(int v1, int v2)
    
   if (v1<0 ||v2<0 ||v1>100 ||v2>100)
   {
-    v2 = v1 = 25;
+    v2 = v1 = 45;
   }
+  if (v1<0) v1 = 0;
+  if (v1> 90) v1 =90;
+  if (v2<0) v2 = 0;
+  if (v2> 90) v2 =90;
+ 
   volume1 = v1; 
   volume2 = v2;
   
-    MP3.setVolume(v1, v2);
+  MP3.setVolume(v1, v2);
   printV();
 }
 
@@ -288,6 +293,18 @@ void onClick(int idBT)
 {
   Serial.print("Click");
   Serial.println(idBT);
+  switch (idBT)
+  {
+    case 0: chooseSID(songID-1);
+    break ; 
+    case 1: nextMusic(); 
+    break;
+    case 2: setupVolume(volume1 +5, volume2 +5); 
+    
+    break;
+    case 3: setupVolume(volume1 -5, volume2 -5);
+    break;
+  }
 }
 
 int _keyPressed = -1;
