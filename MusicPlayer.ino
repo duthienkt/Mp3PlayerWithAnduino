@@ -282,9 +282,27 @@ bool near(int i, int j)
 {
   return i>j?(i-j<15):j-i<15;
 }
+
+
 void onClick(int idBT)
 {
-  
+  Serial.print("Click");
+  Serial.println(idBT);
+}
+
+int _keyPressed = -1;
+void onPress(int idBT)
+{
+  _keyPressed = idBT;
+}
+
+void onRelease()
+{
+  if (_keyPressed>=0)
+  {
+    onClick(_keyPressed);
+    _keyPressed = -1;
+  }
 }
 int volta[6] = {957,  892, 827, 188, 125, 60};
 int getButtonID()
@@ -296,13 +314,22 @@ int getButtonID()
 }
 
 
-
+int lastKey[3] = {-1, -1, -1};
+int crKey;
 void keyListen()
 {
-  
+  crKey = getButtonID();
+  if ( lastKey[0] == lastKey[1] && lastKey[0] == lastKey[2])
+  if (lastKey[2] == crKey)
+    onPress(crKey);
+    else
+    onRelease();
+  lastKey[0] = lastKey[1];
+  lastKey[1] = lastKey[2];
+  lastKey[2] = crKey;
 }
 
-void tick100()
+void tick50()
 {
   keyListen();
 }
@@ -312,8 +339,8 @@ void sleepForIO()
 {
   for ( int i = 0; i< 10; i++)
   {
-    tick100();
-    delay(100);
+    tick50();
+    delay(50);
   }
 }
 
