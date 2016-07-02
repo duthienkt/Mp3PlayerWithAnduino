@@ -12,6 +12,11 @@ int songID;
 int ofs;
 int volume1, volume2;
 SFEMP3Shield MP3;
+
+/*
+ * Free pin : 10~, 5~, 4, 3~, 1, 0
+ */
+
 void setup() {
     Serial.begin(115200);
     if(!sd.begin(SD_SEL, SPI_FULL_SPEED)) sd.initErrorHalt();
@@ -21,6 +26,7 @@ void setup() {
     printInfo();
     MP3.begin();
     setupVolume(volume1, volume2);
+    pinMode(A0, INPUT);
 }
 
 void printInfo()
@@ -231,11 +237,91 @@ void commandListener()
   }
 }
 
+
+/*
+ * Sensnor 1 2 3
+ * Pin     3 4 5
+ * Bit 0  1 to 2
+ * Bit 1  2 to 3
+ * Bit 3  3 to 1
+*/
+/*
+uint8_t checkSensor()
+{
+  uint8_t res = 0;
+  pinMode(3, OUTPUT);
+  pinMode(4, INPUT);
+  pinMode(5, INPUT);
+  digitalWrite(3, HIGH);
+  digitalWrite(4, LOW);
+  digitalWrite(5, LOW);
+  
+  delay(20);
+  
+  res |= digitalRead(4);
+  res |= digitalRead(5)<<2;
+  
+  pinMode(4, OUTPUT);
+  pinMode(3, INPUT);
+  pinMode(5, INPUT);
+  digitalWrite(4, HIGH);
+  digitalWrite(3, LOW);
+  digitalWrite(5, LOW);
+  delay(20);
+  res |= digitalRead(5)<<1;
+  
+  
+  return res;
+  
+  
+}
+*/
+
+
+bool near(int i, int j)
+{
+  return i>j?(i-j<15):j-i<15;
+}
+void onClick(int idBT)
+{
+  
+}
+int volta[6] = {957,  892, 827, 188, 125, 60};
+int getButtonID()
+{
+  int t =  analogRead(A0);
+  for (int i = 0; i< 6; ++i)
+  if (near(t, volta[i])) return i;
+  return -1; 
+}
+
+
+
+void keyListen()
+{
+  
+}
+
+void tick100()
+{
+  keyListen();
+}
+
+
+void sleepForIO()
+{
+  for ( int i = 0; i< 10; i++)
+  {
+    tick100();
+    delay(100);
+  }
+}
+
 void loop() {
   // put your main code here, to run repeatedly:
   if(MP3.isPlaying())
   {
-    delay(1000);
+    sleepForIO();
   }
   else
   {
