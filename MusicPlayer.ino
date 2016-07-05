@@ -53,11 +53,11 @@ void printV()
   Serial.print(" ");
   Serial.println(volume2);
 }
-char filename[32];
+char [32];
 void printFn()
 {
   Serial.print("Playing :");
-  Serial.print(filename);
+  Serial.print();
 }
 
 
@@ -70,7 +70,7 @@ void copy(char * a, char * b, int c)
 //songID 2 byte
 // volume1 2byte
 //volume2 2byte
-//filename *n* 32 byte
+// *n* 32 byte
 
 void setupVolume(int v1, int v2)
 {
@@ -100,11 +100,11 @@ void loadSeting()
     SdFile f;
     while (f.openNext(sd.vwd(), O_READ))
     {
-        f.getFilename(filename);
+        f.get();
         f.close(); 
-        Serial.println(filename);
+        Serial.println();
         //if (false)
-        if (isFnMusic(filename))
+        if (isFnMusic())
         {
         SdFile d;
         if (d.open("/mp3/dir.bin", O_WRITE|O_READ))
@@ -114,7 +114,7 @@ void loadSeting()
          d.read(&volume2, 2);
          for (int i = 0; i< ofs; i++)
             d.read(temp, 32); 
-        d.write(filename, 32);
+        d.write(, 32);
         d.close();
         ofs++;
         }
@@ -144,10 +144,10 @@ int chooseSID(int id)
   songID = id;
   while (songID<0) songID += ofs;
   while (songID>= ofs) songID -= ofs;
-  FnID(songID, filename, true);
+  FnID(songID, , true);
   Serial.print("Now play :");
-  Serial.println(filename);
-  return MP3.playMP3(filename);
+  Serial.println();
+  return MP3.playMP3();
 }
 int  nextMusic()
 {
@@ -307,18 +307,29 @@ void onClick(int idBT)
   }
 }
 
+void onLongClick(int idBt)
+{
+  
+}
+
 int _keyPressed = -1;
+int keyHolding = 0;
 void onPress(int idBT)
 {
   _keyPressed = idBT;
+  keyHolding++;
 }
 
 void onRelease()
 {
   if (_keyPressed>=0)
   {
+    if (keyHolding< 40)
     onClick(_keyPressed);
+    else
+    onLongClick(_keyPressed);
     _keyPressed = -1;
+    keyHolding = 0;
   }
 }
 int volta[6] = {957,  892, 827, 188, 125, 60};
@@ -333,6 +344,7 @@ int getButtonID()
 
 int lastKey[3] = {-1, -1, -1};
 int crKey;
+
 void keyListen()
 {
   crKey = getButtonID();
