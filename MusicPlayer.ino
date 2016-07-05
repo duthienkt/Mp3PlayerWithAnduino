@@ -12,6 +12,7 @@ int ofs;
 int volume1, volume2;
 SFEMP3Shield MP3;
 
+bool notPause = true;
 /*
  * Free pin : 10~, 5~, 4, 3~, 1, 0
  */
@@ -55,7 +56,9 @@ void printV()
 char filename[32];
 void printFn()
 {
-  Serial.print("Playing :");
+  Serial.print("Playing : ");
+  Serial.print(songID);
+  Serial.print(" - ");
   Serial.print(filename);
 }
 
@@ -90,36 +93,60 @@ void setupVolume(int v1, int v2)
   printV();
 }
 
+char upper(char x)
+{
+  return (x>='A' &&x<='Z')?x:x - 32;
+}
+bool strequal(char *a, char *b)
+{
+  int i = 0;
+  for (i = 0; upper(a[i]) == upper(b[i])&&a[i]!=0 &&b[i]!=0; i++);
+  return upper(a[i]) == upper(b[i]);
+}
+char needDelete[32] = "";
+
 void loadSeting()
 {
+  if(!sd.chdir("/mp3/")) sd.errorHalt("sd.chdir");
     songID = 0;
     ofs = 0;
     volume1 = 0;
     volume2 =  0;
     SdFile f;
-    while (f.openNext(sd.vwd(), O_READ))
+    while (f.openNext(sd.vwd(), O_READ|O_WRITE))
     {
         f.getFilename(filename);
-        f.close(); 
-        Serial.println(filename);
-        //if (false)
-        if (isFnMusic(filename))
+         
+        if (strequal(filename, needDelete))
         {
-        SdFile d;
-        if (d.open("/mp3/dir.bin", O_WRITE|O_READ))
-         songID = 0;
-         d.read(&songID, 2);
-         d.read(&volume1, 2);
-         d.read(&volume2, 2);
-         for (int i = 0; i< ofs; i++)
-            d.read(temp, 32); 
-        d.write(filename, 32);
-        d.close();
-        ofs++;
+          Serial.print("delete file:");
+          Serial.println(filename);
+          f.remove();
+          f.close();
         }
-          f.close();    
+        else
+        {
+          f.close();
+          Serial.print(ofs);
+          Serial.print(" - ");
+          Serial.println(filename);
+          //if (false)
+          if (isFnMusic(filename))
+          {
+            SdFile d;
+            if (d.open("/mp3/dir.bin", O_WRITE|O_READ))
+            songID = 0;
+            d.read(&songID, 2);
+            d.read(&volume1, 2);
+            d.read(&volume2, 2);
+            for (int i = 0; i< ofs; i++)
+               d.read(temp, 32); 
+            d.write(filename, 32);
+            d.close();
+            ofs++;
+          }
+        }      
     }
-   
 }
 
 void FnID(int i, char * bf, bool writeDown = false)
@@ -144,8 +171,8 @@ int chooseSID(int id)
   while (songID<0) songID += ofs;
   while (songID>= ofs) songID -= ofs;
   FnID(songID, filename, true);
-  Serial.print("Now play :");
-  Serial.println(filename);
+  printFn();
+  notPause = true;
   return MP3.playMP3(filename);
 }
 int  nextMusic()
@@ -180,8 +207,31 @@ bool readInt(int & x)
         return true;
       }
   }
-  return false;
-  
+  return false;  
+}
+/*
+void addFolder(char * f, int sf)
+{
+  for (int i = sf-1; i>=5; i--)
+  f[i] = f[i-5];
+  f[0] = '/';
+  f[1] = 'm';
+  f[2] = 'p';
+  f[3] = '3';
+  f[4] = '/';
+}*/
+
+
+void deleteCurrentPlay()
+{
+  copy( filename, needDelete, 32);
+  MP3.stopTrack();
+ 
+   Serial.print("prepare to delete file:");
+   Serial.println(needDelete);
+   Serial.println("-------------------------");
+  loadSeting();
+  songID --;
 }
 void commandListener()
 {
@@ -288,9 +338,10 @@ bool near(int i, int j)
 }
 
 
+
 void onClick(int idBT)
 {
-  Serial.print("Click");
+  Serial.print("Click ");
   Serial.println(idBT);
   switch (idBT)
   {
@@ -303,12 +354,34 @@ void onClick(int idBT)
     break;
     case 3: setupVolume(volume1 -5, volume2 -5);
     break;
+    case 5:
+        if (notPause )
+          {
+            MP3.pauseMusic();
+            notPause = false;
+          }
+        else
+        {
+          
+            notPause = true;
+            MP3.resumeMusic();
+        }
   }
 }
 
+
+void onLongClick(int idBT)
+{
+  if (idBT == 5) deleteCurrentPlay();
+}
 int _keyPressed = -1;
+int _timeHolding = 0;
 void onPress(int idBT)
 {
+  if (idBT>=0)
+  _timeHolding++;
+  else
+  _timeHolding = 0;
   _keyPressed = idBT;
 }
 
@@ -316,14 +389,19 @@ void onRelease()
 {
   if (_keyPressed>=0)
   {
-    onClick(_keyPressed);
+    if (_timeHolding< 60)
+      onClick(_keyPressed);
+    else
+      onLongClick(_keyPressed);
     _keyPressed = -1;
+    _timeHolding = 0;
   }
 }
 int volta[6] = {957,  892, 827, 188, 125, 60};
 int getButtonID()
 {
   int t =  analogRead(A0);
+  
   for (int i = 0; i< 6; ++i)
   if (near(t, volta[i])) return i;
   return -1; 
@@ -368,6 +446,7 @@ void loop() {
   }
   else
   {
+    if (notPause)
     nextMusic();
   }
   //Serial.println("Listening");
