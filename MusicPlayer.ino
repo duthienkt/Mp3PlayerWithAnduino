@@ -1,4 +1,3 @@
-
 #include <SPI.h>
 
 //Add the SdFat Libraries
@@ -374,5 +373,4 @@ void loop() {
   //Serial.println("Listening");
   commandListener();
   
-
 }
